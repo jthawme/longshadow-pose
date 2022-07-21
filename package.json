@@ -1,0 +1,27 @@
+{
+  "name": "longshadow",
+  "version": "1.0.0",
+  "license": "MIT",
+  "devDependencies": {
+    "@parcel/transformer-sass": "2.6.2",
+    "buffer": "^6.0.3",
+    "parcel": "^2.6.2",
+    "process": "^0.11.10"
+  },
+  "scripts": {
+    "start": "parcel ./src/index.html"
+  },
+  "dependencies": {
+    "@mediapipe/pose": "^0.5.1657299384",
+    "@tensorflow-models/pose-detection": "^2.0.0",
+    "@tensorflow/tfjs-backend-wasm": "^3.18.0",
+    "@tensorflow/tfjs-backend-webgl": "^3.18.0",
+    "@tensorflow/tfjs-converter": "^3.18.0",
+    "@tensorflow/tfjs-core": "^3.18.0",
+    "chroma-js": "^2.4.2",
+    "chromotome": "^1.20.0",
+    "memoizerific": "^1.11.3",
+    "normalize.css": "^8.0.1",
+    "raf-loop": "^1.1.3"
+  }
+}

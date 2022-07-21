@@ -1,0 +1,23 @@
+html,body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+}
+
+canvas {
+  // outline: 1px solid red;
+}
+
+video {
+  height: 480px;
+
+  position: absolute;
+
+  opacity: 0;
+}
