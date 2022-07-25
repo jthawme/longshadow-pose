@@ -5,12 +5,15 @@ import chroma from "chroma-js";
 
 export const createPalette = (ctx, height) => {
   const palette = tome.getRandom();
-  // const palette = tome.get("giftcard_sub");
+  // const palette = tome.get("roygbiv-warm");
 
-  console.log(palette.name);
+  if (!palette.background) {
+    palette.background = palette.colors[0];
+  }
 
   const fills = palette.colors
     .filter((c) => {
+      console.log(c, palette.background);
       return chroma.distance(c, palette.background) > 20;
     })
     .map((color, idx, arr) => {

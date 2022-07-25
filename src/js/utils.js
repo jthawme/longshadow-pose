@@ -20,6 +20,10 @@ export const clamp = (num, min, max) => {
   return Math.min(Math.max(num, min), max);
 };
 
+export const lerp = (v0, v1, t) => {
+  return v0 * (1 - t) + v1 * t;
+};
+
 export const mapRange = (value, x1, y1, x2, y2) =>
   ((value - x1) * (y2 - x2)) / (y1 - x1) + x2;
 
@@ -121,11 +125,11 @@ export const deg2rad = (degrees) => {
 export const videoPlaying = (videoEl) => {
   return new Promise((resolve) => {
     const onPlaying = () => {
-      videoEl.removeEventListener("playing", onPlaying);
+      videoEl.removeEventListener("loadeddata", onPlaying);
       resolve(videoEl);
     };
 
-    videoEl.addEventListener("canplaythrough", onPlaying);
+    videoEl.addEventListener("loadeddata", onPlaying);
   });
 };
 

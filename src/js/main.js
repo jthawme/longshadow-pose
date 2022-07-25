@@ -13,14 +13,45 @@ import {
 import * as Pose from "./pose";
 import { bootstrapPrimitives } from "./primitives";
 import { createPalette } from "./colours";
+import { KEYPOINTS } from "./constants";
+import { Point } from "./point";
+
+// const DRAW = [
+//   "left_ear",
+//   "left_shoulder",
+//   "left_elbow",
+//   "left_wrist",
+//   "left_hip",
+//   "left_knee",
+//   "right_knee",
+//   "right_hip",
+//   "right_wrist",
+//   "right_elbow",
+//   "right_shoulder",
+//   "right_ear",
+// ];
+const DRAW = [
+  "left_ear",
+  // "left_shoulder",
+  // "left_elbow",
+  "left_wrist",
+  // "left_hip",
+  "left_knee",
+  "right_knee",
+  // "right_hip",
+  "right_wrist",
+  // "right_elbow",
+  // "right_shoulder",
+  "right_ear",
+];
 
 (async () => {
   const canvas = document.getElementById("canvas");
   const ctx = bootstrapPrimitives(canvas.getContext("2d"));
   const video = document.querySelector("video");
 
-  const WIDTH = value(480);
-  const HEIGHT = value(480);
+  const WIDTH = value(window.innerWidth);
+  const HEIGHT = value(window.innerHeight);
 
   const VIDEO_WIDTH = value(0);
   const VIDEO_HEIGHT = value(0);
@@ -30,7 +61,14 @@ import { createPalette } from "./colours";
   const mouseX = value(0);
   const mouseY = value(0);
 
-  const palette = createPalette(ctx, HEIGHT.get());
+  let palette = createPalette(ctx, HEIGHT.get());
+
+  const keypoints = KEYPOINTS.reduce((p, c) => {
+    return {
+      ...p,
+      [c]: Point(WIDTH.get() / 2, HEIGHT.get() / 2),
+    };
+  }, {});
 
   const resize = (width = 480, height = 480) => {
     const dpr = window.devicePixelRatio;
@@ -44,8 +82,8 @@ import { createPalette } from "./colours";
   };
 
   const preload = async () => {
-    const stream = await webcam();
-    video.srcObject = stream;
+    // const stream = await webcam();
+    // video.srcObject = stream;
     await video.play();
 
     return [Pose.setup(), videoPlaying(video)];
@@ -77,6 +115,19 @@ import { createPalette } from "./colours";
       tickUpdate((e) => {
         mouseX.set(e.offsetX);
         mouseY.set(e.offsetY);
+      })
+    );
+
+    listenCb(document, "click", () => {
+      palette = createPalette(ctx, HEIGHT.get());
+    });
+
+    listenCb(
+      window,
+      "resize",
+      tickUpdate(() => {
+        HEIGHT.set(window.innerHeight);
+        WIDTH.set(window.innerWidth);
       })
     );
 
@@ -115,103 +166,35 @@ import { createPalette } from "./colours";
   const update = async () => {
     const poses = await Pose.estimate(video);
 
-    // if (poses.filter((p) => p.score > 0.5).length === 0) {
-    //   return;
-    // }
+    const centre = {
+      x: WIDTH.get() / 2,
+      y: HEIGHT.get() / 2,
+    };
 
     ctx.save();
     ctx.fillStyle = palette.background;
     ctx.fillRect(0, 0, WIDTH.get(), HEIGHT.get());
 
-    // console.log(poses);
+    poses[0].keypoints.forEach(({ x, y, name, score }) => {
+      if (score > 0.6) {
+        keypoints[name].set(vw(x), vh(y));
+      }
+      keypoints[name].update();
+    });
 
-    poses.forEach((pose) => {
-      const parts = {
-        shoulders: {
-          names: ["left_shoulder", "right_shoulder"],
-          points: {},
-          fill: palette.get(1),
-          mod: (x, y, idx) => {
-            if (idx === 0) {
-              return [x - WIDTH.get(), y + HEIGHT.get()];
-            } else {
-              return [x + WIDTH.get(), y + HEIGHT.get()];
-            }
-          },
-        },
-        forearm2: {
-          names: ["left_elbow", "left_wrist"],
-          points: {},
-          fill: palette.get(0),
-          mod: (x, y) => {
-            return [x + WIDTH.get(), y + HEIGHT.get()];
-          },
-        },
-        arm2: {
-          names: ["left_shoulder", "left_elbow"],
-          points: {},
-          fill: palette.get(0),
-          mod: (x, y) => {
-            return [x + WIDTH.get(), y + HEIGHT.get()];
-          },
-        },
-        forearm1: {
-          names: ["right_elbow", "right_wrist"],
-          points: {},
-          fill: palette.get(2),
-          mod: (x, y) => {
-            return [x - WIDTH.get(), y + HEIGHT.get()];
-          },
-        },
-        arm1: {
-          names: ["right_shoulder", "right_elbow"],
-          points: {},
-          fill: palette.get(2),
-          mod: (x, y) => {
-            return [x - WIDTH.get(), y + HEIGHT.get()];
-          },
-        },
-      };
-      const keys = Object.keys(parts);
+    DRAW.forEach((name, idx, arr) => {
+      ctx.fillStyle = palette.get(idx);
+      const last =
+        idx > 0 ? keypoints[arr[idx - 1]] : keypoints[arr[arr.length - 1]];
 
-      ctx.fillStyle = "black";
-      pose.keypoints.forEach(({ x, y, name, score }) => {
-        keys.forEach((k) => {
-          if (parts[k].names.includes(name)) {
-            parts[k].points[parts[k].names.indexOf(name)] = {
-              x: vw(x),
-              y: vh(y),
-            };
-          }
-
-          // ctx.drawDot(vw(x), vh(y), 2);
-        });
-      });
-
-      keys.forEach((k) => {
-        const points = Object.values(parts[k].points);
-
-        if (points.length > 1) {
-          ctx.fillStyle = parts[k].fill;
-          const path = new Path2D();
-          points.forEach((pos, idx) => {
-            if (idx === 0) {
-              path.moveTo(pos.x, pos.y);
-            } else {
-              path.lineTo(pos.x, pos.y);
-            }
-          });
-
-          if (parts[k].mod) {
-            points.reverse().forEach((pos, idx) => {
-              path.lineTo(...parts[k].mod(pos.x, pos.y, idx));
-              // path.lineTo(pos.x - WIDTH.get(), pos.y + HEIGHT.get());
-            });
-          }
-          path.closePath();
-          ctx.fill(path);
-        }
-      });
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(keypoints[name].x, keypoints[name].y);
+      // ctx.lineTo(WIDTH.get(), HEIGHT.get() / 2);
+      ctx.lineTo(...keypoints[name].project(centre, WIDTH.get() * 2));
+      ctx.lineTo(...last.project(centre, WIDTH.get() * 2));
+      ctx.closePath();
+      ctx.fill();
     });
   };
 
